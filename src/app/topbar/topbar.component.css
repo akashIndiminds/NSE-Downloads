@@ -1,0 +1,74 @@
+/* Top Bar */
+.top-bar {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    background: linear-gradient(90deg, #1a1f25 0%, #31455a 100%);
+    color: white;
+    padding: 10px 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    position: fixed; /* Keeps the TopBar at the top */
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 1000;
+  }
+  
+
+/* Hamburger Icon */
+.hamburger {
+    font-size: 25px;
+    color: rgb(255, 255, 255);
+    background: none;
+    border: none;
+    cursor: pointer;
+    outline: none;
+    margin-right: 10px; /* Space between icon and company name */
+    transition: color 0.3s ease;
+    margin-left: 10px;
+}
+
+.hamburger:hover {
+    color: #457b9d;
+  }
+
+/* Company Name */
+.company-name {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #ffffff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .top-bar {
+        padding: 8px 10px;
+    }
+
+    .company-name {
+        font-size: 1rem;
+        max-width: 50%;
+    }
+
+    .hamburger {
+        font-size: 22px;
+    }
+}
+
+@media (max-width: 480px) {
+    .top-bar {
+        padding: 6px 8px;
+    }
+
+    .company-name {
+        font-size: 0.9rem;
+        max-width: 45%;
+    }
+
+    .hamburger {
+        font-size: 20px;
+    }
+}

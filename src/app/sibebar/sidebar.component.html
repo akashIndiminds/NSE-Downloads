@@ -1,0 +1,26 @@
+<div class="sidebar-overlay" *ngIf="isOpen" (click)="handleOverlayClick($event)"></div>
+<div class="sidebar" [class.open]="isOpen" (click)="stopSidebarClose($event)">
+  <div class="sidebar-content">
+    
+    <div class="menu-section">
+        <h3>NSE Download</h3>
+        <ul class="submenu">
+          <li (click)="navigateToNseDownload()">Download Data</li>
+        </ul>
+      </div>
+
+    <div class="bottom-section">
+      <ul class="bottom-menu">
+        <li (click)="navigateToSettings()">
+          <img src="./images/settings-icon.png" alt="Settings" class="icon">
+          <span>Settings</span>
+        </li>
+        <li (click)="logout()">
+          <img src="./images/logout-icon.png" alt="Logout" class="icon">
+          <span>Logout</span>
+        </li>
+      </ul>
+    </div>
+    <button class="close-btn" (click)="toggle()">x</button>
+  </div>
+</div>

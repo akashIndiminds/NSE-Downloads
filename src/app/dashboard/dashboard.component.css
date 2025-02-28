@@ -1,0 +1,249 @@
+/* Existing Styles */
+
+.main-content {
+    display: flex;
+    min-height: 100vh;
+    padding-top: 55px; /* Offset for the fixed top bar */
+    flex-direction: column;
+    width: 100%;
+    overflow-x: hidden;
+}
+
+/* Dashboard container styles */
+.dashboard-container {
+    width: 100%;
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    text-align: center;
+    background: linear-gradient(135deg, #1d3557, #457b9d);
+    color: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.1);
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* Heading styles */
+h1 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    opacity: 0;
+    animation: fadeIn 1.5s ease-in-out forwards;
+}
+
+/* Paragraph styles */
+p {
+    font-size: 1.2rem;
+    margin: 15px 0;
+    opacity: 0;
+    transform: translateY(20px);
+    animation: slideUp 1.5s ease-in-out forwards;
+}
+
+.delay {
+    animation-delay: 0.5s;
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+/* Large screens (1200px and up) */
+@media screen and (min-width: 1200px) {
+    .dashboard-container {
+        padding: 50px 40px;
+    }
+}
+
+/* Medium screens (992px to 1199px) */
+@media screen and (max-width: 1199px) {
+    .dashboard-container {
+        max-width: 90%;
+    }
+    
+    h1 {
+        font-size: 2.2rem;
+    }
+    
+    p {
+        font-size: 1.1rem;
+    }
+}
+
+/* Tablets (768px to 991px) */
+@media screen and (max-width: 991px) {
+    .dashboard-container {
+        padding: 25px 15px;
+        margin: 20px auto 10px;
+        width: 100%;
+    }
+    
+    h1 {
+        font-size: 2rem;
+    }
+    
+    p {
+        font-size: 1rem;
+    }
+}
+
+/* Small tablets and large phones (576px to 767px) */
+@media screen and (max-width: 767px) {
+    .dashboard-container {
+        padding: 25px 15px;
+        margin: 20px auto 10px;
+        width: 100%;
+    }
+    h1 {
+        font-size: 1.8rem;
+        margin-bottom: 15px;
+    }
+    
+    p {
+        font-size: 0.95rem;
+        margin: 12px 0;
+    }
+}
+
+/* Mobile phones (575px and below) */
+@media screen and (max-width: 575px) {
+    .dashboard-container {
+        padding: 25px 15px;
+        margin: 20px auto 10px;
+        width: 100%;
+    }
+    h1 {
+        font-size: 1.6rem;
+        margin-bottom: 12px;
+    }
+    
+    p {
+        font-size: 0.9rem;
+        margin: 10px 0;
+    }
+}
+
+/* Very small devices (320px and below) */
+@media screen and (max-width: 320px) {
+    .dashboard-container {
+        padding: 20px 10px;
+        margin: 15px auto 8px;
+    }
+    h1 {
+        font-size: 1.4rem;
+    }
+    
+    p {
+        font-size: 0.85rem;
+    }
+}
+
+
+/* New Styles for Background Slider */
+
+/* Background slider container */
+.bg-slider {
+    position: fixed;            /* Fixed so it stays in the background */
+    top: 55px;                  /* Adjust to be below your top bar */
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    z-index: -1;                /* Behind your main content */
+    overflow: hidden;
+}
+
+/* Each slide covers the full container */
+.slide {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    animation: fade 16s infinite;  /* Total duration for 4 slides (each ~4s) */
+}
+
+/* Assign your images and stagger the animations */
+.slide1 {
+    background-image: url('/images/automation1.png');
+    animation-delay: 0s;
+}
+.slide2 {
+    background-image: url('/images/automation2.jpeg');
+    animation-delay: 4s;
+}
+.slide3 {
+    /* Reusing automation1.png for the third slide */
+    background-image: url('/images/automation3.jpeg');
+    animation-delay: 8s;
+}
+.slide4 {
+    /* Reusing automation2.jpeg for the fourth slide */
+    background-image: url('/images/automation4.jpeg');
+    animation-delay: 12s;
+}
+
+
+/* Fade animation for slides */
+@keyframes fade {
+    0%   { opacity: 0; }
+    12.5% { opacity: 1; }
+    25%  { opacity: 1; }
+    37.5% { opacity: 0; }
+    100% { opacity: 0; }
+}
+
+/* Slider dots container */
+.slider-dots {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+}
+
+/* Dot styling and animation */
+.dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.5);
+    animation: dotfade 16s infinite;
+}
+
+/* Stagger the dot animations to match each slide */
+.dot:nth-child(1) { animation-delay: 0s; }
+.dot:nth-child(2) { animation-delay: 4s; }
+.dot:nth-child(3) { animation-delay: 8s; }
+.dot:nth-child(4) { animation-delay: 12s; }
+
+/* Dot fade animation to highlight active slide */
+@keyframes dotfade {
+    0%   { background: rgba(255, 255, 255, 0.5); }
+    12.5% { background: #fff; }
+    25%  { background: #fff; }
+    37.5% { background: rgba(255, 255, 255, 0.5); }
+    100% { background: rgba(255, 255, 255, 0.5); }
+}

@@ -1,0 +1,163 @@
+<app-topbar (toggleSidebar)="toggleSidebar()"></app-topbar>
+<div class="main-content">
+  <app-sidebar [(isOpen)]="isSidebarOpen"></app-sidebar>
+  <div class="header">
+    <!-- Combined Header with Always Visible Elements -->
+    <form (ngSubmit)="executeBuildTask()">
+      <div class="form-row">
+        <div class="form-group">
+          <label for="startDate">Start Date:</label>
+          <input
+            id="startDate"
+            type="date"
+            [(ngModel)]="startDate"
+            name="startDate"
+            [max]="todayDate"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label for="endDate">End Date:</label>
+          <input
+            id="endDate"
+            type="date"
+            [(ngModel)]="endDate"
+            name="endDate"
+            [max]="todayDate"
+            required
+          />
+        </div>
+        <div class="form-group">
+          <label>Mode:</label>
+          <select [(ngModel)]="downloadMode" name="downloadMode" class="mode-select">
+            <option value="manual">Manual</option>
+            <option value="auto" disabled>Auto</option>
+          </select>
+        </div>
+        <!-- Time selection code kept commented for future use -->
+        <!--
+        <div class="form-group">
+          <label>Time:</label>
+          <select [(ngModel)]="selectedTime" name="selectedTime" class="time-picker" disabled>
+            <option [value]="5">5 sec</option>
+          </select>
+        </div>
+        -->
+        <div class="form-group">
+          <!-- Note: We use a button click event that calls executeBuildTask() -->
+          <button
+            type="button"
+            class="start-button"
+            (click)="executeBuildTask()"
+            [disabled]="!startDate || !endDate || (startDate > endDate) || isProcessing"
+          >
+            {{ isProcessing ? 'Processing...' : 'Start Process' }}
+          </button>
+        </div>
+        <div class="form-group" *ngIf="downloadCycleCompleted && !importInProgress && downloadedFiles.length > 0">
+          <button type="button" class="import-button" (click)="importFiles()">Import Files</button>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="dashboard">
+    <!-- Pending Downloads Section -->
+    <div class="section pending-section">
+      <h2>NSE Files - Pending Downloads</h2>
+      <div class="file-list">
+        <!-- Files in downloading state -->
+        <div *ngFor="let file of pendingFiles" class="file-item">
+          <div class="file-info">
+            <span class="filename">{{ file.filename }}</span>
+            <div class="status-indicator">
+              <div class="loading-dots">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+              </div>
+              <span class="status-text">Downloading...</span>
+            </div>
+          </div>
+          <div class="file-meta">
+            <span>Last Modified: {{ file.lastModified | date:'medium' }}</span>
+          </div>
+        </div>
+
+        <!-- Files that failed to download -->
+        <div *ngFor="let file of failedFiles" class="file-item failed">
+          <div class="file-info">
+            <span class="filename">{{ file.filename }}</span>
+            <div class="status-indicator error">
+              <svg class="error-icon" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M12,2C17.53,2 22,6.47 22,12C22,17.53 17.53,22 12,22C6.47,22 2,17.53 2,12C2,6.47 6.47,2 12,2M15.59,7L12,10.59L8.41,7L7,8.41L10.59,12L7,15.59L8.41,17L12,13.41L15.59,17L17,15.59L13.41,12L17,8.41L15.59,7Z"/>
+              </svg>
+              <span class="status-text">File Not Found</span>
+            </div>
+          </div>
+          <div class="file-meta">
+            <span>Last Modified: {{ file.lastModified | date:'medium' }}</span>
+            <span *ngIf="file.failedReason">Reason: {{ file.failedReason }}</span>
+          </div>
+        </div>
+
+        <!-- Empty state for pending section -->
+        <div *ngIf="pendingFiles.length === 0 && failedFiles.length === 0" class="empty-state">
+          <span>No pending files</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Downloaded Files Section -->
+    <div class="section completed-section">
+      <h2>Downloaded Files</h2>
+      <div class="file-list">
+        <div *ngFor="let file of downloadedFiles" class="file-item completed">
+          <div class="file-info">
+            <span class="filename">{{ file.filename }}</span>
+            <div class="status-indicator">
+              <svg class="checkmark" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+              </svg>
+              <span class="status-text">Downloaded</span>
+            </div>
+          </div>
+          <div class="file-meta">
+            <span>Download Time: {{ file.downloadedTime | date:'mediumTime' }}</span>
+          </div>
+        </div>
+
+        <!-- Empty state for downloaded section -->
+        <div *ngIf="downloadedFiles.length === 0" class="empty-state">
+          <span>No downloaded files</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Imported Files Section - Always visible -->
+    <div class="section imported-section">
+      <h2>Imported Files</h2>
+      <div class="file-list">
+        <div *ngFor="let file of importedFiles" class="file-item imported">
+          <div class="file-info">
+            <span class="filename">{{ file.filename }}</span>
+            <div class="status-indicator">
+              <svg class="checkmark" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+              </svg>
+              <span class="status-text">Imported</span>
+            </div>
+          </div>
+          <div class="file-meta">
+            <span>Import Time: {{ file.importedTime | date:'mediumTime' }}</span>
+          </div>
+        </div>
+
+        <!-- Empty state for imported section -->
+        <div *ngIf="importedFiles.length === 0" class="empty-state">
+          <span>No imported files</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
