@@ -2,7 +2,6 @@ import { Component, OnInit, HostListener } from '@angular/core';
 import { SidebarComponent } from '../sibebar/sidebar.component';
 import { TopBarComponent } from '../topbar/topbar.component';
 import { RupeeAnimationComponent } from '../rupeeanimation/rupee-animation.component';
-
 @Component({
   selector: 'app-dashboard',
   standalone:true,
