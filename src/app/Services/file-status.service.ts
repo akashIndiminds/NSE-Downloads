@@ -1,8 +1,8 @@
-//file-status.service.ts
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Subject, Observable, catchError, throwError } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { baseUrl } from '../app.config';  // NEW: import baseUrl
 
 export interface FileItem {
   filename: string;
@@ -12,6 +12,9 @@ export interface FileItem {
   truncatedName?: string;
   failedReason?: string;
   isImported?: boolean;
+  importedTime?: Date | null;
+  uniqueId?: string; // Unique identifier for deduplication
+  spStatus?: string; // Status after import
 }
 
 export interface DownloadCycleResponse {
@@ -21,10 +24,13 @@ export interface DownloadCycleResponse {
 
 @Injectable({ providedIn: 'root' })
 export class FileStatusService {
-  private readonly STATUS_API_URL = 'http://192.168.1.131:3000/api/automate/status';
-  private readonly DOWNLOAD_API_URL = 'http://192.168.1.131:3000/api/automate/DownloadFiles';
+  private readonly STATUS_API_URL = `${baseUrl}/api/automate/status`;
+  private readonly DOWNLOAD_API_URL = `${baseUrl}/api/automate/DownloadFiles`;
   private filesSubject = new BehaviorSubject<FileItem[]>([]);
   public files$ = this.filesSubject.asObservable();
+
+  // Track files we've already processed to prevent duplicates (in memory only)
+  private processedFiles = new Map<string, FileItem>();
 
   // Subjects for events
   private downloadCycleCompleted = new Subject<void>();
@@ -33,7 +39,9 @@ export class FileStatusService {
   private authError = new Subject<void>();
   public authError$ = this.authError.asObservable();
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) {
+    // Removed localStorage loading logic
+  }
 
   getFileStatus(): Observable<FileItem[]> {
     return this.http.get<any>(this.STATUS_API_URL).pipe(
@@ -42,13 +50,19 @@ export class FileStatusService {
         if (!Array.isArray(data)) {
           throw new Error('Invalid API response structure');
         }
-        return data.map(file => ({
+        
+        const files = data.map(file => ({
           filename: file.filename || file.name || file.fileName,
           dlStatus: file.dlStatus || file.status || file.downloadStatus,
           lastModified: file.lastModified || file.modifiedAt || file.timestamp,
           downloadedTime: file.dlStatus === 200 ? new Date() : null,
-          isImported: file.isImported || false
+          isImported: file.isImported || false,
+          // Generate a unique ID based on filename and current time
+          uniqueId: `${file.filename || file.name || file.fileName}-${Date.now()}`
         }));
+        
+        // Merge with known processed files (in memory only) without including previous files not in the new batch
+        return this.mergeWithProcessedFiles(files);
       }),
       catchError(error => throwError(() => error))
     );
@@ -63,7 +77,7 @@ export class FileStatusService {
   updateFileStatus(): void {
     this.getFileStatus().subscribe({
       next: (currentFiles) => {
-        // Simply update the file list (you could add truncated names here if desired)
+        // Enhance files with truncated names and failure reasons
         const processedFiles = currentFiles.map(file => ({
           ...file,
           truncatedName:
@@ -73,39 +87,79 @@ export class FileStatusService {
           failedReason: file.dlStatus === 404 ? 'File not available in backend' : undefined
         }));
 
+        // Update our in-memory processed files and emit the new file list
+        this.updateProcessedFiles(processedFiles);
         this.filesSubject.next(processedFiles);
 
-        // If all files are in a final state (downloaded or failed), then check download completion
+        // If all files are in a final state (downloaded or failed), notify subscribers
         const allProcessed = processedFiles.every(
           file => file.dlStatus === 200 || file.dlStatus === 404
         );
-        if (allProcessed) {
-          this.checkDownloadCompletion().subscribe({
-            next: (response) => {
-              if (response.success) {
-                // Mark any pending files as failed due to download cycle completion
-                const updatedFiles = processedFiles.map(file =>
-                  file.dlStatus !== 200
-                    ? { ...file, dlStatus: 404, failedReason: 'Download cycle completed' }
-                    : file
-                );
-                this.filesSubject.next(updatedFiles);
-                this.downloadCycleCompleted.next();
-              }
-            },
-            error: (error) => {
-              console.error('Error checking download completion:', error);
-            }
-          });
+        
+        if (allProcessed && processedFiles.length > 0) {
+          // Mark any pending files as failed due to download cycle completion
+          const updatedFiles = processedFiles.map(file =>
+            file.dlStatus !== 200
+              ? { ...file, dlStatus: 404, failedReason: 'Download cycle completed' }
+              : file
+          );
+          
+          this.updateProcessedFiles(updatedFiles);
+          this.filesSubject.next(updatedFiles);
+          this.downloadCycleCompleted.next();
         }
       },
       error: (error) => {
         console.error('Error fetching status:', error);
-        this.filesSubject.next([]);
         if (error.status === 401) {
           this.authError.next();
         }
       }
     });
+  }
+
+  // Merge new file data with our existing in-memory records without adding files from previous runs that aren't in the new batch
+  private mergeWithProcessedFiles(newFiles: FileItem[]): FileItem[] {
+    const result: FileItem[] = [];
+    
+    for (const newFile of newFiles) {
+      const existingFile = this.processedFiles.get(newFile.filename);
+      
+      if (existingFile) {
+        // If file is already imported, keep it as imported
+        if (existingFile.isImported) {
+          result.push(existingFile);
+        } 
+        // If file was downloaded earlier and now shows a different status, preserve the downloaded state
+        else if (existingFile.dlStatus === 200 && newFile.dlStatus !== 200) {
+          result.push(existingFile);
+        }
+        // Otherwise, use the new file info
+        else {
+          result.push(newFile);
+        }
+      } else {
+        // Brand new file; add it
+        result.push(newFile);
+      }
+    }
+    
+    return result;
+  }
+  
+  // Update our in-memory processed files tracking
+  private updateProcessedFiles(files: FileItem[]): void {
+    for (const file of files) {
+      // Only track files in final states (downloaded, imported, or failed)
+      if (file.dlStatus === 200 || file.dlStatus === 404 || file.isImported) {
+        this.processedFiles.set(file.filename, file);
+      }
+    }
+  }
+  
+  // Clear processed files (resets in-memory state)
+  public clearProcessedFiles(): void {
+    this.processedFiles.clear();
+    this.filesSubject.next([]);
   }
 }

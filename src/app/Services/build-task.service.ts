@@ -4,6 +4,8 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { baseUrl } from '../app.config';  // NEW: import baseUrl
+
 
 export interface BuildTaskResponse {
   success: boolean;
@@ -14,7 +16,7 @@ export interface BuildTaskResponse {
   providedIn: 'root'
 })
 export class BuildTaskService {
-  private readonly API_URL = 'http://192.168.1.131:3000/api';
+  private readonly API_URL = `${baseUrl}/api`;
 
   constructor(private http: HttpClient) {}
 

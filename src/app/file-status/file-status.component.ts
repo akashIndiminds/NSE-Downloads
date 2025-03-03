@@ -6,7 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { TopBarComponent } from '../topbar/topbar.component';
 import { SidebarComponent } from '../sibebar/sidebar.component';
-import { Subscription, interval } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { FileItem } from './shared/interfaces/file-item.interface';
 import { BuildTaskService } from '../Services/build-task.service';
 import { DialogComponent } from '../dialog/dialog.component';
@@ -29,17 +29,11 @@ import { HttpClient } from '@angular/common/http';
   animations: [
     trigger('moveAnimation', [
       transition(':leave', [
-        animate(
-          '500ms ease-out',
-          style({ transform: 'translateX(100%)', opacity: 0 })
-        ),
+        animate('500ms ease-out', style({ transform: 'translateX(100%)', opacity: 0 }))
       ]),
       transition(':enter', [
         style({ transform: 'translateX(-100%)', opacity: 0 }),
-        animate(
-          '500ms ease-in',
-          style({ transform: 'translateX(0)', opacity: 1 })
-        ),
+        animate('500ms ease-in', style({ transform: 'translateX(0)', opacity: 1 }))
       ]),
     ]),
   ],
@@ -48,19 +42,16 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   pendingFiles: FileItem[] = [];
   downloadedFiles: FileItem[] = [];
   importedFiles: FileItem[] = [];
-  failedFiles: FileItem[] = [];
-  downloadMode: 'auto' | 'manual' = 'manual'; // Default to manual mode
-  selectedTime: number = 5; // Default polling interval (5 seconds)
+  selectedTime: number = 5;
   isProcessing: boolean = false;
   private statusSubscription?: Subscription;
-  private pollingSubscription?: Subscription;
   private downloadCycleSub?: Subscription;
   private authErrorSub?: Subscription;
-
+  failedFiles: FileItem[] = [];
+  downloadCycleMessage: string = ''; // New property
   readonly MAX_FILENAME_LENGTH = 30;
   isSidebarOpen: boolean = false;
 
-  // Pre-fill dates with today's date
   startDate: string = new Date().toISOString().split('T')[0];
   endDate: string = new Date().toISOString().split('T')[0];
   todayDate: string = new Date().toISOString().split('T')[0];
@@ -68,9 +59,12 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   buildTaskSuccess: boolean = false;
   downloadCycleCompleted: boolean = false;
   importInProgress: boolean = false;
-  
-  // API URLs for manual mode
+  private activeSession: boolean = false;
   private readonly DOWNLOAD_API_URL = 'http://192.168.1.131:3000/api/automate/DownloadFiles';
+
+  get totalPendingFiles(): number { return this.pendingFiles.length; }
+  get totalDownloadedFiles(): number { return this.downloadedFiles.length; }
+  get totalImportedFiles(): number { return this.importedFiles.length; }
 
   constructor(
     private fileService: FileStatusService,
@@ -81,237 +75,257 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-   // this.loadFiles();
-
+    const storedProcessing = localStorage.getItem('isProcessing');
+    if (storedProcessing === 'true') {
+      this.isProcessing = true;
+      this.activeSession = true;
+    }
+    this.loadImportedFiles();
     this.statusSubscription = this.fileService.files$.subscribe({
-      next: (files) => {
-        this.updateFileArrays(files);
-      },
-      error: (error) => {
-        console.error('Error in file status subscription:', error);
-      },
+      next: (files) => this.updateFileArrays(this.deduplicateFiles(files)),
+      error: (error) => console.error('Error in file status subscription:', error),
     });
-
     this.downloadCycleSub = this.fileService.downloadCycleCompleted$.subscribe(() => {
-      this.stopPolling();
       this.downloadCycleCompleted = true;
       this.isProcessing = false;
+      this.activeSession = false;
+      localStorage.setItem('isProcessing', 'false');
     });
-
     this.authErrorSub = this.fileService.authError$.subscribe(() => {
-      this.stopPolling();
-      this.isProcessing = false;
-      this.dialog.open(DialogComponent, {
-        data: {
-          title: 'Authentication Error',
-          message: 'Your session has expired. Please login again.',
-          type: 'error',
-        },
-      });
+      this.handleAuthError();
     });
-  }
-
-  // Start process: validate, then trigger build task
-  startProcess() {
-    if (!this.startDate || !this.endDate) {
-      this.dialog.open(DialogComponent, {
-        data: {
-          title: 'Missing Information',
-          message: 'Please select both start and end dates.',
-          type: 'error',
-        },
-      });
-      return;
-    }
-    this.isProcessing = true;
-    this.executeBuildTask();
-  }
-
-  executeBuildTask() {
-    const dateValidation = this.buildTaskService.validateDateRange(this.startDate, this.endDate);
-    if (!dateValidation.isValid) {
-      this.isProcessing = false;
-      this.dialog.open(DialogComponent, {
-        data: {
-          title: 'Invalid Date Range',
-          message: dateValidation.message,
-          type: 'error',
-        },
-      });
-      return;
-    }
-
-    this.buildTaskService.buildTask(this.startDate, this.endDate).subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.buildTaskSuccess = true;
-          this.dialog.open(DialogComponent, {
-            data: {
-              title: 'Success',
-              message: response.message,
-              type: 'success',
-            },
-          });
-          
-          // After build task success, handle based on mode
-          if (this.downloadMode === 'auto') {
-            // For auto mode: Start polling for continuous updates
-            this.startPolling();
-          } else {
-            // For manual mode: Make a single status check then download
-            this.handleManualModeProcess();
-          }
-        } else {
-          this.isProcessing = false;
-          this.dialog.open(DialogComponent, {
-            data: {
-              title: 'Error',
-              message: 'Failed to build task.',
-              type: 'error',
-            },
-          });
-        }
-      },
-      error: (error) => {
-        this.isProcessing = false;
-        this.dialog.open(DialogComponent, {
-          data: {
-            title: 'Error',
-            message: error.message,
-            type: 'error',
-          },
-        });
-      },
-    });
-  }
-
-  // New method to handle manual mode process
-  handleManualModeProcess() {
-    // Step 1: Update the file status once
     this.fileService.updateFileStatus();
+  }
+  
+
+  startProcess() {
+    if (!this.validateDates()) return;
+    if (this.activeSession) {
+      this.showProcessRunningError();
+      return;
+    }
+  
+    this.isProcessing = true;
+    this.activeSession = true;
+    localStorage.setItem('isProcessing', 'true');
+    this.buildTaskSuccess = false;
+    this.downloadCycleCompleted = false;
+  
+    this.fileService.getFileStatus().subscribe({
+      next: (files) => this.handleFileStatusResponse(files),
+      error: (error) => this.handleFileStatusError(error)
+    });
+  }
+  
+  private validateDates(): boolean {
+    if (!this.startDate || !this.endDate) {
+      this.showDateError('Please select both start and end dates.');
+      return false;
+    }
     
-    // Step 2: After a brief delay, initiate the download
-    setTimeout(() => {
-      this.initiateDownload();
-    }, 1000); // Small delay to allow status update to complete
+    const validation = this.buildTaskService.validateDateRange(this.startDate, this.endDate);
+    if (!validation.isValid) {
+      this.showDateError(validation.message);
+      return false;
+    }
+    return true;
   }
 
-  // New method to initiate download process
-  initiateDownload() {
+  private handleFileStatusResponse(files: FileItem[]) {
+    const pending = files.filter(f => f.dlStatus !== 200 && !f.isImported);
+    if (pending.length === 0) {
+      this.executeBuildTask();
+    } else {
+      this.initiateDownload();
+    }
+  }
+
+  private executeBuildTask() {
+    this.buildTaskService.buildTask(this.startDate, this.endDate).subscribe({
+      next: (response) => this.handleBuildTaskSuccess(response),
+      error: (error) => this.handleBuildTaskError(error)
+    });
+  }
+
+  private handleBuildTaskSuccess(response: any) {
+    if (response.success) {
+      this.buildTaskSuccess = true;
+      this.handleManualModeProcess();
+    } else {
+      this.handleBuildTaskError(response.message);
+    }
+  }
+
+  private handleManualModeProcess() {
+    this.fileService.updateFileStatus();
+    setTimeout(() => this.initiateDownload(), 1000);
+  }
+
+  private initiateDownload() {
     this.http.get<any>(this.DOWNLOAD_API_URL).subscribe({
-      next: (response) => {
-        if (response.success) {
-          // Update the file status one more time
-          this.fileService.updateFileStatus();
-          
-          // Set completion flags
-          setTimeout(() => {
-            this.downloadCycleCompleted = true;
-            this.isProcessing = false;
-          }, 1000); // Small delay to allow final status update
-        } else {
-          this.isProcessing = false;
-          this.dialog.open(DialogComponent, {
-            data: {
-              title: 'Download Failed',
-              message: 'Failed to download files.',
-              type: 'error',
-            },
-          });
-        }
-      },
-      error: (error) => {
-        this.isProcessing = false;
-        this.dialog.open(DialogComponent, {
-          data: {
-            title: 'Download Error',
-            message: error.message || 'Failed to download files',
-            type: 'error',
-          },
-        });
-      }
+      next: (response) => this.handleDownloadResponse(response),
+      error: (error) => this.handleDownloadError(error)
     });
   }
 
   importFiles() {
+    if (this.downloadedFiles.length === 0) {
+      this.showImportError('There are no files to import.');
+      return;
+    }
+    
     this.importInProgress = true;
     this.importService.importFiles().subscribe({
-      next: (response) => {
-        if (response.success) {
-          this.dialog.open(DialogComponent, {
-            data: {
-              title: 'Import Success',
-              message: response.message,
-              type: 'success',
-            },
-          });
-          // Mark downloaded files as imported
-          this.downloadedFiles.forEach((file) => (file.isImported = true));
-          // Move files from downloaded to imported section
-          this.importedFiles = [...this.downloadedFiles];
-          this.downloadedFiles = [];
-        }
-        this.importInProgress = false;
-      },
-      error: (error) => {
-        this.dialog.open(DialogComponent, {
-          data: {
-            title: 'Import Failed',
-            message: error.message,
-            type: 'error',
-          },
-        });
-        this.importInProgress = false;
-      },
+      next: (response) => this.handleImportSuccess(response),
+      error: (error) => this.handleImportError(error)
     });
   }
 
+  // Helper methods
+  private updateFileArrays(files: FileItem[]) {
+    const uniqueFiles = this.deduplicateFiles(files);
+    
+    // All files that have been downloaded (regardless of spStatus)
+    this.downloadedFiles = uniqueFiles.filter(f => f.dlStatus === 200);
+    
+    // Files that are marked as imported (either using an isImported flag or by checking spStatus)
+    this.importedFiles = uniqueFiles.filter(
+      f => f.dlStatus === 200 && (f.isImported || (f.spStatus !== 404 && f.spStatus !== '404'))
+    );
+    
+    // Pending files are those not yet downloaded
+    this.pendingFiles = uniqueFiles.filter(f => f.dlStatus !== 200);
+  }
+  
+  
+  
+
+  private deduplicateFiles(files: FileItem[]): FileItem[] {
+    const uniqueFiles = new Map<string, FileItem>();
+    [...files].reverse().forEach(file => {
+      if (!uniqueFiles.has(file.filename)) uniqueFiles.set(file.filename, file);
+    });
+    return Array.from(uniqueFiles.values());
+  }
+
+  // Error handling methods
+  private handleAuthError() {
+    this.isProcessing = false;
+    this.activeSession = false;
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Authentication Error', message: 'Your session has expired. Please login again.', type: 'error' }
+    });
+  }
+
+  private showDateError(message: string) {
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Date Error', message, type: 'error' }
+    });
+  }
+
+  private showProcessRunningError() {
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Process Running', message: 'Please wait for current process to complete.', type: 'warning' }
+    });
+  }
+
+  private handleFileStatusError(error: any) {
+    this.isProcessing = false;
+    this.activeSession = false;
+    console.error('File status check failed:', error);
+  }
+
+  private handleBuildTaskError(error: any) {
+    this.isProcessing = false;
+    this.activeSession = false;
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Build Task Failed', message: error.message || 'Failed to build task', type: 'error' }
+    });
+  }
+
+  private handleDownloadResponse(response: any) {
+    if (response.success) {
+      if (response.message === "Download cycle Ended") {
+        // Clear pending files and show message
+        //this.pendingFiles = [];
+        this.downloadCycleCompleted = true;
+        this.isProcessing = false;
+        this.activeSession = false;
+      } else {
+        // Normal success case
+        this.fileService.updateFileStatus();
+        setTimeout(() => {
+          this.downloadCycleCompleted = true;
+          this.isProcessing = false;
+          this.activeSession = false;
+        }, 1000);
+      }
+    } else {
+      this.handleDownloadError(response.message);
+    }
+  }
+  private handleDownloadError(error: any) {
+    this.isProcessing = false;
+    this.activeSession = false;
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Download Failed', message: error.message || 'File download failed', type: 'error' }
+    });
+  }
+
+  private handleImportSuccess(response: any) {
+    if (response.success && response.importedFiles) {
+      const now = new Date();
+      // For each file in the downloadedFiles list, update it if it was imported
+      this.downloadedFiles.forEach(file => {
+        if (response.importedFiles.includes(file.filename)) {
+          file.isImported = true; // Mark file as imported
+          file.importedTime = now;
+          // Optionally update spStatus to indicate the import has been done
+          file.spStatus = 'Imported'; // or any other non-404 value
+        }
+      });
+      
+      // Refresh file status to update both downloaded and imported arrays
+      this.fileService.updateFileStatus();
+      
+      // Optionally persist the imported state if needed
+      localStorage.setItem('importedFiles', JSON.stringify(this.importedFiles));
+    }
+    this.importInProgress = false;
+  }
+  
+  
+  private handleImportError(error: any) {
+    this.importInProgress = false;
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Import Failed', message: error.message || 'File import failed', type: 'error' }
+    });
+  }
+
+  private showImportError(message: string) {
+    this.dialog.open(DialogComponent, {
+      data: { title: 'Import Error', message, type: 'error' }
+    });
+  }
+  private loadImportedFiles() {
+    const stored = localStorage.getItem('importedFiles');
+    if (stored) {
+      this.importedFiles = JSON.parse(stored);
+    }
+  }
+
   ngOnDestroy() {
-    this.stopPolling();
     this.statusSubscription?.unsubscribe();
     this.downloadCycleSub?.unsubscribe();
     this.authErrorSub?.unsubscribe();
   }
 
-  private loadFiles() {
-    this.fileService.updateFileStatus();
-  }
-
-  private updateFileArrays(files: FileItem[]) {
-    // Optionally add truncated file names here (or do it in the service)
-    this.pendingFiles = files.filter((f) => f.dlStatus !== 200 && f.dlStatus !== 404);
-    this.downloadedFiles = files.filter((f) => f.dlStatus === 200 && !f.isImported);
-    this.importedFiles = files.filter((f) => f.isImported);
-    this.failedFiles = files.filter((f) => f.dlStatus === 404);
-  }
-
-  private startPolling() {
-    this.stopPolling(); // Clear any existing polling
-    // Initial status update
-    this.fileService.updateFileStatus();
-    // Poll at regular intervals
-    this.pollingSubscription = interval(this.selectedTime * 1000).subscribe(() => {
-      this.fileService.updateFileStatus();
-    });
-  }
-
-  private stopPolling() {
-    if (this.pollingSubscription) {
-      this.pollingSubscription.unsubscribe();
-    }
-  }
-
-  toggleSidebar() {
-    this.isSidebarOpen = !this.isSidebarOpen;
-  }
+  toggleSidebar() { this.isSidebarOpen = !this.isSidebarOpen; }
 
   @HostListener('document:mousedown', ['$event'])
   handleClickOutside(event: Event): void {
     const target = event.target as HTMLElement;
-    const isSidebarClick = target.closest('.sidebar') !== null;
-    const isHamburgerClick = target.closest('.hamburger') !== null;
-
-    if (this.isSidebarOpen && !isSidebarClick && !isHamburgerClick) {
+    if (this.isSidebarOpen && !target.closest('.sidebar') && !target.closest('.hamburger')) {
       this.isSidebarOpen = false;
     }
   }

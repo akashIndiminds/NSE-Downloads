@@ -32,7 +32,29 @@
 .import-button:hover { background: linear-gradient(135deg, #219653, #1e8449); }
 
 .loading-indicator { color: white; padding: 0.7rem 1.25rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+.header-with-count {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.alert-message {
+  background-color: #fff3cd;
+  color: #bd1919;
+  padding: 12px;
+  margin: 10px 0;
+  border-radius: 4px;
+  border-left: 4px solid #ffeeba;
+  font-weight: 500;
+}
 
+.note-message {
+  margin-top: 8px;
+  font-size: 0.85em;
+  color: #555;
+  font-weight: 400;
+  font-style: italic;
+  line-height: 1.4;
+}
 /* Dashboard Layout */
 .dashboard { 
   display: grid; 
@@ -47,7 +69,21 @@
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .section:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
 .section h2 { margin-bottom: 1rem; color: #2c3e50; font-size: 1.1rem; font-weight: 600; padding-bottom: 0.5rem; border-bottom: 2px solid #f1f1f1; }
+/* Modified Section Headers to match file item colors */
+.pending-section h2 {
+  color: #3498db;
+  border-bottom-color: #3498db; /* Blue - for Pending Downloads */
+}
 
+.completed-section h2 {
+  color: #2ecc71;
+  border-bottom-color: #2ecc71; /* Green - for Downloaded Files */
+}
+
+.imported-section h2 {
+  color: #9b59b6;
+  border-bottom-color: #9b59b6; /* Purple - for Imported Files */
+}
 /* File List Styling */
 .file-list { display: flex; flex-direction: column; gap: 0.75rem; max-height: 400px; overflow-y: auto; padding-right: 8px; overflow-anchor: none; margin-left: 10px; }
 .file-list::-webkit-scrollbar { width: 6px; }
@@ -85,6 +121,10 @@
 .file-meta { font-size: 0.75rem; color: #95a5a6; display: flex; flex-wrap: wrap; gap: 0.75rem; }
 
 .empty-state { padding: 1.5rem; text-align: center; color: #95a5a6; font-style: italic; font-size: 0.9rem; }
+.imported-section .checkmark {
+  color: #9b59b6; /* Purple checkmark for imported files */
+}
+
 
 /* Auto Refresh Animation */
 @keyframes refreshPulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
