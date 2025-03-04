@@ -1,4 +1,5 @@
-import { Component, OnInit, HostListener, OnDestroy } from '@angular/core';
+import { Component, OnInit, HostListener, OnDestroy, PLATFORM_ID, Inject } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { trigger, transition, style, animate } from '@angular/animations';
 import { FileStatusService } from '../Services/file-status.service';
 import { CommonModule } from '@angular/common';
@@ -6,13 +7,15 @@ import { FormsModule } from '@angular/forms';
 import { HttpClientModule } from '@angular/common/http';
 import { TopBarComponent } from '../topbar/topbar.component';
 import { SidebarComponent } from '../sibebar/sidebar.component';
-import { Subscription } from 'rxjs';
+import { interval, Subscription } from 'rxjs';
 import { FileItem } from './shared/interfaces/file-item.interface';
 import { BuildTaskService } from '../Services/build-task.service';
 import { DialogComponent } from '../dialog/dialog.component';
 import { Dialog } from '@angular/cdk/dialog';
 import { ImportFilesService } from '../Services/import-files.service';
 import { HttpClient } from '@angular/common/http';
+import { switchMap, takeWhile } from 'rxjs/operators';
+import { baseUrl } from '../app.config';
 
 @Component({
   selector: 'app-file-status',
@@ -48,10 +51,10 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   private downloadCycleSub?: Subscription;
   private authErrorSub?: Subscription;
   failedFiles: FileItem[] = [];
-  downloadCycleMessage: string = ''; // New property
+  downloadCycleMessage: string = '';
   readonly MAX_FILENAME_LENGTH = 30;
   isSidebarOpen: boolean = false;
-
+  
   startDate: string = new Date().toISOString().split('T')[0];
   endDate: string = new Date().toISOString().split('T')[0];
   todayDate: string = new Date().toISOString().split('T')[0];
@@ -60,43 +63,112 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   downloadCycleCompleted: boolean = false;
   importInProgress: boolean = false;
   private activeSession: boolean = false;
-  private readonly DOWNLOAD_API_URL = 'http://192.168.1.131:3000/api/automate/DownloadFiles';
+  private readonly DOWNLOAD_API_URL = `${baseUrl}/api/automate/DownloadFiles`;
+  private pollingSubscription?: Subscription;
+  private pollingActive: boolean = false;
+  private autoRefreshSub?: Subscription;
+
 
   get totalPendingFiles(): number { return this.pendingFiles.length; }
   get totalDownloadedFiles(): number { return this.downloadedFiles.length; }
   get totalImportedFiles(): number { return this.importedFiles.length; }
+
 
   constructor(
     private fileService: FileStatusService,
     private buildTaskService: BuildTaskService,
     private importService: ImportFilesService,
     private dialog: Dialog,
-    private http: HttpClient
+    private http: HttpClient,
+    @Inject(PLATFORM_ID) private platformId: Object
   ) {}
 
   ngOnInit() {
-    const storedProcessing = localStorage.getItem('isProcessing');
-    if (storedProcessing === 'true') {
-      this.isProcessing = true;
-      this.activeSession = true;
+    // Only access localStorage in browser environment
+    if (isPlatformBrowser(this.platformId)) {
+      const storedProcessing = localStorage.getItem('isProcessing');
+      if (storedProcessing === 'true') {
+        this.isProcessing = true;
+        this.activeSession = true;
+        // Start polling if we were in a processing state
+        this.startPollingDownloadAPI();
+      }
+      this.loadImportedFiles();
     }
-    this.loadImportedFiles();
+    
     this.statusSubscription = this.fileService.files$.subscribe({
       next: (files) => this.updateFileArrays(this.deduplicateFiles(files)),
       error: (error) => console.error('Error in file status subscription:', error),
     });
+    
     this.downloadCycleSub = this.fileService.downloadCycleCompleted$.subscribe(() => {
       this.downloadCycleCompleted = true;
       this.isProcessing = false;
       this.activeSession = false;
-      localStorage.setItem('isProcessing', 'false');
+      this.stopPolling();
+      
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem('isProcessing', 'false');
+      }
     });
+    
     this.authErrorSub = this.fileService.authError$.subscribe(() => {
       this.handleAuthError();
     });
+    // Add auto-refresh functionality
+    this.autoRefreshSub = interval(8000).subscribe(() => {
+      this.refreshPendingFiles();
+    });
+
+    
     this.fileService.updateFileStatus();
   }
   
+  private startPollingDownloadAPI() {
+    if (this.pollingActive) {
+      return; // Don't start polling if it's already active
+    }
+    
+    this.pollingActive = true;
+    
+    // Poll every 10 seconds
+    this.pollingSubscription = interval(5000).pipe(
+      // Only continue polling while active
+      takeWhile(() => this.pollingActive),
+      switchMap(() => this.http.get<any>(this.DOWNLOAD_API_URL))
+    ).subscribe({
+      next: response => {
+        this.handleDownloadResponse(response);
+        // Update file statuses with each poll
+        this.fileService.updateFileStatus();
+        
+        // If download cycle ended, stop polling
+        if (response.success && response.message === "Download cycle Ended") {
+          this.downloadCycleCompleted = true;
+          this.isProcessing = false;
+          this.activeSession = false;
+          this.downloadCycleMessage = 'Download cycle completed successfully';
+          this.stopPolling();
+          
+          if (isPlatformBrowser(this.platformId)) {
+            localStorage.setItem('isProcessing', 'false');
+          }
+        }
+      },
+      error: error => {
+        this.handleDownloadError(error);
+        this.stopPolling();
+      }
+    });
+  }
+  
+  private stopPolling() {
+    this.pollingActive = false;
+    if (this.pollingSubscription) {
+      this.pollingSubscription.unsubscribe();
+      this.pollingSubscription = undefined;
+    }
+  }
 
   startProcess() {
     if (!this.validateDates()) return;
@@ -107,7 +179,12 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   
     this.isProcessing = true;
     this.activeSession = true;
-    localStorage.setItem('isProcessing', 'true');
+    this.downloadCycleMessage = 'Processing started...';
+    
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.setItem('isProcessing', 'true');
+    }
+    
     this.buildTaskSuccess = false;
     this.downloadCycleCompleted = false;
   
@@ -115,6 +192,9 @@ export class FileStatusComponent implements OnInit, OnDestroy {
       next: (files) => this.handleFileStatusResponse(files),
       error: (error) => this.handleFileStatusError(error)
     });
+
+    // Start the polling mechanism
+    this.startPollingDownloadAPI();
   }
   
   private validateDates(): boolean {
@@ -150,6 +230,7 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   private handleBuildTaskSuccess(response: any) {
     if (response.success) {
       this.buildTaskSuccess = true;
+      this.downloadCycleMessage = 'Build task completed, initiating downloads...';
       this.handleManualModeProcess();
     } else {
       this.handleBuildTaskError(response.message);
@@ -195,10 +276,10 @@ export class FileStatusComponent implements OnInit, OnDestroy {
     
     // Pending files are those not yet downloaded
     this.pendingFiles = uniqueFiles.filter(f => f.dlStatus !== 200);
+    
+    // Failed files
+    this.failedFiles = uniqueFiles.filter(f => f.dlStatus === 404);
   }
-  
-  
-  
 
   private deduplicateFiles(files: FileItem[]): FileItem[] {
     const uniqueFiles = new Map<string, FileItem>();
@@ -212,6 +293,8 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   private handleAuthError() {
     this.isProcessing = false;
     this.activeSession = false;
+    this.stopPolling();
+    
     this.dialog.open(DialogComponent, {
       data: { title: 'Authentication Error', message: 'Your session has expired. Please login again.', type: 'error' }
     });
@@ -232,12 +315,15 @@ export class FileStatusComponent implements OnInit, OnDestroy {
   private handleFileStatusError(error: any) {
     this.isProcessing = false;
     this.activeSession = false;
+    this.stopPolling();
     console.error('File status check failed:', error);
   }
 
   private handleBuildTaskError(error: any) {
     this.isProcessing = false;
     this.activeSession = false;
+    this.stopPolling();
+    
     this.dialog.open(DialogComponent, {
       data: { title: 'Build Task Failed', message: error.message || 'Failed to build task', type: 'error' }
     });
@@ -245,28 +331,31 @@ export class FileStatusComponent implements OnInit, OnDestroy {
 
   private handleDownloadResponse(response: any) {
     if (response.success) {
+      this.downloadCycleMessage = response.message || 'Download in progress';
+      
       if (response.message === "Download cycle Ended") {
-        // Clear pending files and show message
-        //this.pendingFiles = [];
         this.downloadCycleCompleted = true;
         this.isProcessing = false;
         this.activeSession = false;
+        this.stopPolling();
+        
+        if (isPlatformBrowser(this.platformId)) {
+          localStorage.setItem('isProcessing', 'false');
+        }
       } else {
-        // Normal success case
+        // Normal success case - continue polling and update file statuses
         this.fileService.updateFileStatus();
-        setTimeout(() => {
-          this.downloadCycleCompleted = true;
-          this.isProcessing = false;
-          this.activeSession = false;
-        }, 1000);
       }
     } else {
       this.handleDownloadError(response.message);
     }
   }
+  
   private handleDownloadError(error: any) {
     this.isProcessing = false;
     this.activeSession = false;
+    this.stopPolling();
+    
     this.dialog.open(DialogComponent, {
       data: { title: 'Download Failed', message: error.message || 'File download failed', type: 'error' }
     });
@@ -289,11 +378,12 @@ export class FileStatusComponent implements OnInit, OnDestroy {
       this.fileService.updateFileStatus();
       
       // Optionally persist the imported state if needed
-      localStorage.setItem('importedFiles', JSON.stringify(this.importedFiles));
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem('importedFiles', JSON.stringify(this.importedFiles));
+      }
     }
     this.importInProgress = false;
   }
-  
   
   private handleImportError(error: any) {
     this.importInProgress = false;
@@ -307,20 +397,45 @@ export class FileStatusComponent implements OnInit, OnDestroy {
       data: { title: 'Import Error', message, type: 'error' }
     });
   }
+  
   private loadImportedFiles() {
-    const stored = localStorage.getItem('importedFiles');
-    if (stored) {
-      this.importedFiles = JSON.parse(stored);
+    if (isPlatformBrowser(this.platformId)) {
+      const stored = localStorage.getItem('importedFiles');
+      if (stored) {
+        this.importedFiles = JSON.parse(stored);
+      }
+    }
+  }
+  
+  refreshPendingFiles() {
+    this.fileService.updateFileStatus();
+  }
+
+  cancelProcess() {
+    if (this.isProcessing && this.activeSession) {
+      this.isProcessing = false;
+      this.activeSession = false;
+      this.stopPolling();
+      
+      if (isPlatformBrowser(this.platformId)) {
+        localStorage.setItem('isProcessing', 'false');
+      }
+      
+      this.downloadCycleMessage = 'Process cancelled by user';
     }
   }
 
   ngOnDestroy() {
+    this.autoRefreshSub?.unsubscribe();
     this.statusSubscription?.unsubscribe();
     this.downloadCycleSub?.unsubscribe();
     this.authErrorSub?.unsubscribe();
+    this.stopPolling();
   }
 
-  toggleSidebar() { this.isSidebarOpen = !this.isSidebarOpen; }
+  toggleSidebar() { 
+    this.isSidebarOpen = !this.isSidebarOpen; 
+  }
 
   @HostListener('document:mousedown', ['$event'])
   handleClickOutside(event: Event): void {

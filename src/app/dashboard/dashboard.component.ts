@@ -2,6 +2,7 @@ import { Component, OnInit, HostListener } from '@angular/core';
 import { SidebarComponent } from '../sibebar/sidebar.component';
 import { TopBarComponent } from '../topbar/topbar.component';
 import { RupeeAnimationComponent } from '../rupeeanimation/rupee-animation.component';
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-dashboard',
   standalone:true,
@@ -14,12 +15,18 @@ export class DashboardComponent implements OnInit {
   isLoading: boolean = false;
   isSidebarOpen: boolean = false;
 
-  constructor() {}
+  constructor(private router: Router) {}
 
   ngOnInit() {
     this.isSidebarOpen = false;
   
 }
+  // Navigate to Admin page (File Status Page)
+  navigateToNseDownload() {
+    this.router.navigate(['/file-status']);
+    // यदि sidebar toggle करना है तो आप यहां toggleSidebar() भी कॉल कर सकते हैं
+    this.toggleSidebar();
+  }
 
 toggleSidebar() {
   this.isSidebarOpen = !this.isSidebarOpen;

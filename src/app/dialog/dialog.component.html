@@ -1,8 +1,14 @@
-<div class="dialog-container" [ngClass]="data.type">
-    <h2>{{ data.title }}</h2>
-    <p>{{ data.message }}</p>
+<div class="dialog-overlay">
+  <div class="dialog-container" [ngClass]="data.type">
+    <div class="dialog-header">
+      <h2>{{ data.title }}</h2>
+      <button class="close-btn" (click)="dialogRef.close()">&times;</button>
+    </div>
+    <div class="dialog-body">
+      <p>{{ data.message }}</p>
+    </div>
     <div class="dialog-actions">
-      <button (click)="dialogRef.close()">Close</button>
+      <button class="action-btn" (click)="dialogRef.close()">Close</button>
     </div>
   </div>
-  
+</div>
