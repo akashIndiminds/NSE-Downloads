@@ -1,35 +1,39 @@
 <app-topbar (toggleSidebar)="toggleSidebar()"></app-topbar>
-    <!-- Sidebar and Main Dashboard Layout -->
-    <div class="main-content">
-      <!-- Background Slider -->
-      <div class="bg-slider">
-        <div class="slide slide1"></div>
-        <div class="slide slide2"></div>
-        <div class="slide slide3"></div>
-        <div class="slide slide4"></div>
-        <div class="slider-dots">
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
-          <span class="dot"></span>
+<app-sidebar [(isOpen)]="isSidebarOpen"></app-sidebar>
+<div class="main-content">
+  <div class="content-wrapper">
+    <!-- Hero Section -->
+    <section class="hero">
+      <h1>Welcome to NSE Automation Dashboard</h1>
+      <p>
+        Real-time insights and dynamic analytics to elevate your market decisions.
+      </p>
+    </section>
+    
+    <!-- Cards Section -->
+    <section class="cards">
+      <div class="card">
+        <div class="icon">
+          <i class="fas fa-chart-line"></i>
         </div>
+        <h2>Market Trends</h2>
+        <p>Analyze real-time data and track emerging market patterns.</p>
       </div>
-    
-      <!-- Sidebar -->
-      <app-sidebar [(isOpen)]="isSidebarOpen"></app-sidebar>
-    
-      <!-- Dashboard Container -->
-      <div class="dashboard-container">
-        <h1 class="fade-in">Welcome to NSE Downloads Dashboard</h1>
-        <p class="slide-up">Efficiently fetch and manage NSE market data.</p>
-        <p class="slide-up delay">Keep track of real-time market insights with ease.</p>
+      <!-- Quick Access Card with click event -->
+      <div class="card" (click)="navigateToNseDownload()">
+        <div class="icon">
+          <i class="fas fa-download"></i>
+        </div>
+        <h2>Quick Access</h2>
+        <p>Download essential files instantly with a single click.</p>
       </div>
-    
-      <!-- Additional Content -->
-      <!-- <div>
-        <app-rupee-animation></app-rupee-animation>
-      </div> -->
-    </div>
-   
-
-
+      <div class="card">
+        <div class="icon">
+          <i class="fas fa-chart-pie"></i>
+        </div>
+        <h2>Analytics</h2>
+        <p>Visualize performance with interactive charts and graphs.</p>
+      </div>
+    </section>
+  </div>
+</div>

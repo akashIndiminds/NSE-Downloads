@@ -53,9 +53,21 @@
   <div class="dashboard">
     <!-- Pending Downloads Section -->
     <div class="section pending-section">
-      <h2 class="header-with-count">
-        NSE Files - Pending Downloads
-        <span class="file-count">Total Pending Files: {{ totalPendingFiles }}</span>
+      <h2 class="pending-header">
+        <div class="refresh-header">
+          <span class="section-title">Pending Downloads</span>
+          <div class="count-refresh-container">
+            <span class="file-count">Pending Files: {{ totalPendingFiles }}</span>
+            <button 
+            type="button" 
+            class="refresh-button" 
+            #refreshBtn 
+            (click)="refreshPendingFiles()">
+            <i class="fas fa-sync-alt refresh-icon"></i>
+          </button>
+          
+          </div>
+        </div>
       </h2>
       <div class="file-list">
         <div *ngFor="let file of pendingFiles" class="file-item">
@@ -89,7 +101,7 @@
     <!-- Downloaded Files Section -->
     <div class="section completed-section">
       <h2 class="header-with-count">Downloaded Files
-        <span class="file-count">Total Downloaded Files: {{ totalDownloadedFiles }}</span>
+        <span class="file-count">Downloaded Files: {{ totalDownloadedFiles }}</span>
       </h2>
      
       <div class="file-list">
@@ -116,7 +128,7 @@
     <!-- Imported Files Section -->
     <div class="section imported-section">
       <h2 class="header-with-count">Imported Files
-      <span> Total Imported Files: {{ totalImportedFiles }}</span>
+      <span>Imported Files: {{ totalImportedFiles }}</span>
       </h2>
      
       <div class="file-list">
