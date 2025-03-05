@@ -1,224 +1,238 @@
-/* General Sidebar Styles */
+
+.sidebar,
+.sidebar * {
+  font-family: 'Roboto', sans-serif; /* or any preferred font-family */
+}
+
+/* Sidebar Overlay */
 .sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 998;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 998;
 }
 
+/* Sidebar Container */
 .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 300px; /* Default width for larger screens */
-    height: 100vh;
-    background: linear-gradient(135deg, #1d3557, #457b9d);
-    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
-    transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
-    z-index: 1000;
-    transform: translateX(-100%);
-    display: flex;
-    flex-direction: column;
-    padding: 1.5rem;
-    overflow-y: auto;
-    max-width: 80%;
-    box-sizing: border-box;
-    width: 300px;
-    max-width: 80%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 300px; /* Default width for larger screens */
+  height: 100vh;
+  background: linear-gradient(45deg, #1a1a2e, #16213e, #0f3460);
+  box-shadow: 2px 0 15px rgba(0, 0, 0, 0.2);
+  transition: transform 0.3s ease-in-out, width 0.3s ease-in-out;
+  z-index: 1000;
+  transform: translateX(-100%);
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  overflow-y: auto;
+  box-sizing: border-box;
+  max-width: 80%;
 }
 
+/* Sidebar Open State */
 .sidebar.open {
-    transform: translateX(0);
+  transform: translateX(0);
 }
 
+/* Lock Body Scroll When Sidebar Open */
 body.sidebar-open {
-    overflow: hidden;
-    position: fixed;
-    width: 100%;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
 }
 
+/* Sidebar Content */
 .sidebar-content {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
 }
 
 /* Company Logo */
 .company-logo {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-bottom: 2rem;
-    margin-top: 30px;
-    cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30px;
+  margin-bottom: 2rem;
+  cursor: pointer;
 }
 
 /* Menu Section */
 .menu-section h3 {
-    color: rgb(255, 255, 255); /* Ensure all text is black */
-    font-size: 1.4rem;
-    font-weight: bold;
-    margin-bottom: 1rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    border-bottom: 2px solid #a8dadc;
-    padding-bottom: 0.5rem;
+  color: rgb(255, 255, 255);
+  font-size: 1.4rem;
+  font-weight: bold;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  border-bottom: 2px solid #a8dadc;
+  padding-bottom: 0.5rem;
 }
 
 .submenu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
 .submenu li {
-    color: rgb(255, 250, 250); /* Ensure all menu text is black */
+    display: flex;
+    align-items: center;
+    color: rgb(255, 250, 250);
     font-size: 1rem;
     padding: 0.8rem 1.2rem;
     cursor: pointer;
     border-radius: 5px;
     transition: all 0.3s ease-in-out;
-}
-
-.submenu li:hover {
-    background: #457b9d;
-    color: #f1faee;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
   
+
+.submenu li:hover {
+  background: linear-gradient(#0f3460, #386dad);
+  color: #f1faee;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
 /* Bottom Section */
 .bottom-section {
-    margin-top: auto; /* Pushes the bottom section to the bottom */
-    padding-top: 1rem;
-    border-top: 1px solid #a8dadc;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid #a8dadc;
 }
 
 .bottom-menu {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 0.4rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 }
 
 .bottom-menu .icon {
-    width: 18px;
-    height: 18px;
-    object-fit: contain; /* Ensure images maintain their aspect ratio */
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
 }
 
 .bottom-menu li {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    padding: 0.8rem 1.2rem;
-    color: rgb(255, 255, 255); /* Ensure text stays black */
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease-in-out;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.8rem 1.2rem;
+  color: rgb(255, 255, 255);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
 }
 
 .bottom-menu li:hover {
-    background: #457b9d;
-    color: #f1faee;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-  }
+  background: linear-gradient(#0f3460, #386dad);
+  color: #f1faee;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
 
-  .bottom-menu i {
-    font-size: 1.2rem;
-    color: #a8dadc;
-  }
+.bottom-menu i {
+  font-size: 1.2rem;
+  color: #a8dadc;
+}
 
 /* Close Button */
 .close-btn {
-    background: transparent;
-    border: none;
-    color: #f1faee;
-    font-size: 2rem;
-    font-weight: bold;
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    cursor: pointer;
-    transition: transform 0.3s ease-in-out;
-  }
+  background: transparent;
+  border: none;
+  color: #f1faee;
+  font-size: 2rem;
+  font-weight: bold;
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  cursor: pointer;
+  transition: transform 0.3s ease-in-out;
+}
 
 .close-btn:hover {
-    transform: rotate(90deg);
+  transform: rotate(90deg);
 }
 
-/* Sidebar Responsiveness */
-@media screen and (max-width: 768px) {
-    .sidebar {
-        width: 100%;  /* Make sidebar full-screen on mobile */
-        height: 100vh; /* Ensure full height */
-        transform: translateX(-100%); /* Initially hidden */
-    }
-
-    .sidebar.open {
-        transform: translateX(0); /* Ensure it slides in */
-    }
-
-    .company-logo img {
-        max-width: 150px;
-    }
-
-    .submenu li {
-        font-size: 1rem;
-    }
-
-    .bottom-menu li {
-        font-size: 0.9rem;
-        margin-bottom: 10px;
-    }
-}
-
-@media screen and (max-width: 480px) {
-    .sidebar {
-        width: 100%;  /* Make sidebar full-screen on mobile */
-        height: 100vh; /* Ensure full height */
-        transform: translateX(-100%); /* Initially hidden */
-    }
-
-    .sidebar.open {
-        transform: translateX(0); /* Ensure it slides in */
-    }
-
-    .company-logo img {
-        max-width: 150px;
-    }
-
-    .submenu li {
-        font-size: 1rem;
-    }
-
-    .bottom-menu li {
-        font-size: 0.9rem;
-        margin-bottom: 10px;
-    }
-}
+/* Download Icon Styling (using FontAwesome) */
+.download-icon {
+    font-family: "Font Awesome 6 Free", sans-serif !important;
+    font-weight: 900; /* For solid icons */
+    color: #ffffff;
+    font-size: 18px;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+  
 
 /* Modern Scrollbar */
 .sidebar {
-    scrollbar-width: thin;
-    scrollbar-color: #b38f00 #ffd700; /* Updated scrollbar colors */
+  scrollbar-width: thin;
+  scrollbar-color: #b38f00 #ffd700;
 }
 
 .sidebar::-webkit-scrollbar {
-    width: 8px;
+  width: 8px;
 }
 
 .sidebar::-webkit-scrollbar-thumb {
-    background-color: #b38f00; /* Dark gold for contrast */
-    border-radius: 4px;
+  background-color: #b38f00;
+  border-radius: 4px;
 }
 
 .sidebar::-webkit-scrollbar-track {
-    background: #ffd700; /* Gold track */
+  background: #ffd700;
+}
+
+/* Responsive Styles */
+@media screen and (max-width: 768px) {
+  .sidebar {
+    width: 100%;
+    height: 100vh;
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .company-logo img {
+    max-width: 150px;
+  }
+  .submenu li {
+    font-size: 1rem;
+  }
+  .bottom-menu li {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
+}
+
+@media screen and (max-width: 480px) {
+  .sidebar {
+    width: 100%;
+    height: 100vh;
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .company-logo img {
+    max-width: 150px;
+  }
+  .submenu li {
+    font-size: 1rem;
+  }
+  .bottom-menu li {
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+  }
 }

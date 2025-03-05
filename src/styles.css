@@ -55,3 +55,17 @@ button {
 p, h1, h2, h3, h4, h5, h6 {
   overflow-wrap: break-word;
 }
+
+:root {
+  --color-background: #121212;
+  --color-surface: #1e1e1e;
+  --color-primary: #3498db;
+  --color-success: #2ecc71;
+  --color-error: #e74c3c;
+  --color-warning: #f39c12;
+  --color-info: #3498db;
+  --color-text-primary: #f0f0f0;
+  --color-text-secondary: #b0b0b0;
+  --shadow-elevated: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --border-radius: 12px;
+}

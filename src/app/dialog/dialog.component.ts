@@ -5,13 +5,14 @@ import { CommonModule } from '@angular/common';
 export interface DialogData {
   title: string;
   message: string;
-  type: 'success' | 'error';
+  type: 'success' | 'error' | 'info' | 'warning';
+  icon?: string;
 }
 
 @Component({
   selector: 'app-dialog',
   standalone: true,
-  imports:[CommonModule],
+  imports: [CommonModule],
   templateUrl: './dialog.component.html',
   styleUrls: ['./dialog.component.css']
 })

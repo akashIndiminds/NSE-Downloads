@@ -116,7 +116,7 @@ export class FileStatusComponent implements OnInit, OnDestroy {
       this.handleAuthError();
     });
     // Add auto-refresh functionality
-    this.autoRefreshSub = interval(8000).subscribe(() => {
+    this.autoRefreshSub = interval(18000).subscribe(() => {
       this.refreshPendingFiles();
     });
 
@@ -355,9 +355,19 @@ export class FileStatusComponent implements OnInit, OnDestroy {
     this.isProcessing = false;
     this.activeSession = false;
     this.stopPolling();
+  
+    let customMessage = 'File download failed.';
+    // Check if the error is an HTTP error response with status 0
+    if (error.status === 0) {
+      customMessage = 'File download unavailable 🚫 — It appears NSE hasnt uploaded the file yet. Please check back shortly ⏳.';
+    } else if (error.error && error.error.message) {
+      customMessage = error.error.message;
+    } else if (error.message) {
+      customMessage = error.message;
+    }
     
     this.dialog.open(DialogComponent, {
-      data: { title: 'Download Failed', message: error.message || 'File download failed', type: 'error' }
+      data: { title: 'Download Failed', message: customMessage, type: 'error' }
     });
   }
 
